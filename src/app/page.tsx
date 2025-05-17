@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any */
 'use client'
 
 import { useState } from 'react'
@@ -25,8 +26,10 @@ export default function Home() {
 
       setDuration(data.totalDuration)
       setEndTime(formattedEnd)
-    } catch (err) {
-      setError('문제가 발생했습니다.')
+    } catch (_err) {
+      // 콘솔에 에러 출력 (개발 시에만)
+      // console.error(_error)
+      setError('재생시간 계산 중 오류가 발생했습니다.')
     }
   }
 
@@ -40,7 +43,10 @@ export default function Home() {
         placeholder="YouTube 재생목록 URL 붙여넣기"
         className="p-2 border rounded w-full max-w-md mb-4"
       />
-      <button onClick={handleCheck} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+      <button
+        onClick={handleCheck}
+        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+      >
         재생시간 계산
       </button>
 
