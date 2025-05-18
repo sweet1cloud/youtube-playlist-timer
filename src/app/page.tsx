@@ -33,6 +33,7 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-6 bg-gray-50">
+      <title>YouTube Playlist Timer</title>
       <h1 className="text-3xl font-bold mb-4 text-gray-900">YouTube Playlist Timer</h1>
       <p className="mb-6 text-gray-700 max-w-md text-center">
         유튜브 재생목록 URL을 입력하고, 재생시간을 계산해보세요.
