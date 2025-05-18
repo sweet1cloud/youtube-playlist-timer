@@ -1,4 +1,3 @@
-
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 interface PlaylistItem {
@@ -23,20 +22,18 @@ interface SuccessResponse {
   totalSeconds: number;
 }
 
-type Data = {
-  totalDuration?: string
-  totalSeconds?: number
-  error?: string
-}
+type Data = SuccessResponse | ErrorResponse;
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse
+  res: NextApiResponse<Data>
 ) {
   const { playlistUrl } = req.query;
 
   if (!playlistUrl || typeof playlistUrl !== 'string') {
-    return res.status(400).json({ error: 'playlistUrl is required and must be a string' });
+    return res
+      .status(400)
+      .json({ error: 'playlistUrl is required and must be a string' });
   }
 
   try {
@@ -44,53 +41,67 @@ export default async function handler(
     const playlistId = url.searchParams.get('list');
 
     if (!playlistId) {
-      return res.status(400).json({ error: 'Invalid playlist URL: missing list parameter' });
+      return res
+        .status(400)
+        .json({ error: 'Invalid playlist URL: missing list parameter' });
     }
 
     const apiKey = process.env.YOUTUBE_API_KEY;
     if (!apiKey) {
-      return res.status(500).json({ error: 'YouTube API key is not configured' });
+      console.error('YOUTUBE_API_KEY is missing from environment variables');
+      return res
+        .status(500)
+        .json({ error: 'YouTube API key is not configured' });
     }
 
-    // 플레이리스트 아이템 조회
+    // Fetch playlist items
     const playlistItemsUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=contentDetails&maxResults=50&playlistId=${playlistId}&key=${apiKey}`;
     const itemsResponse = await fetch(playlistItemsUrl);
 
     if (!itemsResponse.ok) {
-      return res.status(500).json({ error: 'Failed to fetch playlist items' });
+      return res
+        .status(500)
+        .json({ error: 'Failed to fetch playlist items' });
     }
 
     const itemsData = await itemsResponse.json();
 
     if (!itemsData.items || !Array.isArray(itemsData.items)) {
-      return res.status(500).json({ error: 'No items found in playlist' });
+      return res
+        .status(500)
+        .json({ error: 'No items found in playlist' });
     }
 
     const items: PlaylistItem[] = itemsData.items;
-
     const videoIds = items.map(item => item.contentDetails.videoId).join(',');
 
     if (!videoIds) {
-      return res.status(500).json({ error: 'No video IDs found in playlist' });
+      return res
+        .status(500)
+        .json({ error: 'No video IDs found in playlist' });
     }
 
-    // 비디오 상세 조회
+    // Fetch video details
     const videosUrl = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${videoIds}&key=${apiKey}`;
     const videosResponse = await fetch(videosUrl);
 
     if (!videosResponse.ok) {
-      return res.status(500).json({ error: 'Failed to fetch video details' });
+      return res
+        .status(500)
+        .json({ error: 'Failed to fetch video details' });
     }
 
     const videosData = await videosResponse.json();
 
     if (!videosData.items || !Array.isArray(videosData.items)) {
-      return res.status(500).json({ error: 'No video details found' });
+      return res
+        .status(500)
+        .json({ error: 'No video details found' });
     }
 
     const videos: VideoItem[] = videosData.items;
 
-    // ISO 8601 duration -> seconds 변환 함수
+    // Helper function to parse ISO 8601 duration to seconds
     function parseDuration(duration: string): number {
       const regex = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/;
       const matches = duration.match(regex);
@@ -115,8 +126,9 @@ export default async function handler(
       totalSeconds,
     });
   } catch (error) {
-    // err 변수를 쓰지 않으면 ESLint 오류 남으니 console.error(error)로 출력
-    console.error(error);
-    return res.status(500).json({ error: 'An error occurred while processing the playlist' });
+    console.error('Error processing playlist:', error);
+    return res
+      .status(500)
+      .json({ error: 'An error occurred while processing the playlist' });
   }
 }
